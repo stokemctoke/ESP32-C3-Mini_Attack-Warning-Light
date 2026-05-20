@@ -2,7 +2,7 @@
 
 // ── Hardware ──────────────────────────────────────────────────────────────────
 #define LED_PIN         8       // GPIO to WS2812B data line
-#define LED_COUNT       12      // change to match actual strip length
+#define LED_COUNT       10      // change to match actual strip length
 #define LED_BRIGHTNESS  80      // 0-255; keep low on USB power
 #define BUTTON_PIN      9       // mode-cycle button (pull-up, active LOW)
 
@@ -17,10 +17,6 @@
 
 // ── Button ────────────────────────────────────────────────────────────────────
 #define DEBOUNCE_MS     50
-
-// ── FastLED ───────────────────────────────────────────────────────────────────
-// Disable I2S backend on ESP32-C3; force RMT
-#define FASTLED_ESP32_I2S false
 
 // ── Shared enums ──────────────────────────────────────────────────────────────
 enum DeviceState : uint8_t {
