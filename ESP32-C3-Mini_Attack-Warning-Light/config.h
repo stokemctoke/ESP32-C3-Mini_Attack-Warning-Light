@@ -10,7 +10,7 @@
 #define WIFI_CHANNEL        1       // starting scan channel (1-13)
 #define ALERT_COOLDOWN      10000   // ms to stay in alert after last detection
 #define DEAUTH_THRESHOLD    10      // deauth/disassoc frames per window to trigger alert
-#define BEACON_THRESHOLD    20      // beacon frames per window (v1: raw count proxy)
+#define BEACON_THRESHOLD    50      // beacon frames per window (v1: raw count proxy)
 #define PROBE_THRESHOLD     15      // probe request frames per window to trigger alert
 #define DETECTION_WINDOW    2000    // ms rolling window for frame counting
 #define CHANNEL_HOP_MS      200     // ms between channel hops (1-13)

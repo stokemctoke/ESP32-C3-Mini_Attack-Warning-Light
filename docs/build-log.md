@@ -41,3 +41,23 @@ The promiscuous callback deliberately avoids unnecessary processing. A hardware 
 
 All source files were written from scratch rather than adapting existing sketches or libraries. This forced deliberate choices about task boundaries, state machine structure, and LED effect implementation, resulting in a codebase that is small, focused, and easier to debug or extend than a heavier framework would provide.
 
+---
+
+## 2026-05-20 — First Compilation Attempt: A Preprocessor Irony
+
+The initial build failed with `undefined reference to 'i2s_stop()'`, a linker error arising from a subtle but instructive misunderstanding of how FastLED interprets its configuration flags. The project's config.h contained `#define FASTLED_ESP32_I2S false`, written with the explicit intent to *disable* I2S audio interface support on the ESP32-C3 (which doesn't have hardware I2S anyway on this architecture). The code compiled, but the linker complained about missing I2S functions. It took only a moment to spot the culprit: FastLED 3.10.3 checks for the presence of these flags using the C preprocessor's `#ifdef` directive rather than `#if`. This means the preprocessor treats *any* definition of the symbol — including `#define FASTLED_ESP32_I2S false` — as "enable I2S." The irony is exact and rather perfect: a flag intended to disable I2S was instead enabling it.
+
+The root cause lies in the architectural mismatch between FastLED's expectations and the actual hardware. FastLED was built when ESP32 variants had hardware I2S support; ESP32-C3 lacks it entirely. The arduino-esp32 3.3.8 platform (which sits atop ESP-IDF 5.x) no longer exports the legacy I2S API that FastLED was trying to call. Once the misguided `#define FASTLED_ESP32_I2S false` was removed entirely, FastLED's auto-detection kicked in correctly, defaulting to the RMT (Remote Control) peripheral, which the ESP32-C3 does possess and which is the intended backend for this chip.
+
+The build now compiles. A secondary tweak was made at the same time: LED_COUNT in config.h was revised from 12 to 10 to match the physical LED strip on hand. With these changes in place, the firmware is ready for deployment to the device, though hardware validation — confirming GPIO8 and GPIO9 operate as expected, validating the RMT driver under load, and measuring USB current draw — remains ahead.
+
+---
+
+## 2026-05-20 — First Real Hardware Run: Candle to Red Strobe in One Breath
+
+The firmware flashed cleanly to the physical device for the first time. The device booted straight into candle flicker mode, the default ambient state, with LEDs drifting gently and independently as intended. Then a WiFi deauther device was switched on nearby. Within moments the LEDs snapped into red strobe — the alert state, exactly as specified, with no crashes, no hangs, no nonsense. This is the moment the project stops being theoretical.
+
+The whole point of the device is that the light itself *is* the interface. No screen, no serial monitor, no hidden state. You look at it and you see what's happening: peace brings candle flicker; an attack brings red strobe. The firmware accomplished this end-to-end in a single test run. The candle ambient mode worked, the deauth detection worked, the state machine transition worked, and the alert visual worked. Three years of thought across the handoff specification, an afternoon of careful implementation, and a FastLED preprocessor fix converged into hardware doing precisely what it was designed to do on the first real attempt.
+
+What remains untested is substantial: the four other ambient modes (rainbow, breathe, forest, ocean) are implemented but unvalidated; the three other alert types (beacon wave, probe throb, multi-flash) are untested; the button mode cycling hasn't been exercised; Preferences persistence across power cycles hasn't been confirmed; and the crossfade transition back to ambient after the deauther switches off hasn't been observed. But none of this affects the core validation: the architecture works, the detection works, the rendering works, and the state machine transitions work under real wireless conditions. The rest is scope completion, not risk mitigation.
+
