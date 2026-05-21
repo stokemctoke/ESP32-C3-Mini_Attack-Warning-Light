@@ -31,10 +31,11 @@ static void seed_candle() {
 }
 
 // ── Crossfade state ───────────────────────────────────────────────────────────
-static CRGB     fade_from[LED_COUNT];
-static uint32_t fade_start_ms   = 0;
-static AmbientMode fade_target  = AMBIENT_CANDLE;
-static const uint32_t FADE_MS   = 2000;
+static CRGB        fade_from[LED_COUNT];
+static uint32_t    fade_start_ms        = 0;
+static AmbientMode fade_target          = AMBIENT_CANDLE;
+static uint32_t    fade_duration_ms     = 2000;
+static bool        fade_lerp_brightness = false; // true only for alert→ambient
 
 // ── Effect functions ──────────────────────────────────────────────────────────
 
@@ -165,23 +166,25 @@ static void render_ambient(AmbientMode mode) {
 // Returns true when the fade is complete.
 static bool fx_crossfade() {
     uint32_t elapsed = millis() - fade_start_ms;
-    if (elapsed >= FADE_MS) return true;
+    if (elapsed >= fade_duration_ms) return true;
 
-    uint8_t blend = (uint8_t)(elapsed * 255UL / FADE_MS);
+    uint8_t blend = (uint8_t)(elapsed * 255UL / fade_duration_ms);
 
     // Render ambient target into leds[], then capture it
     render_ambient(fade_target);
     CRGB ambient_snap[LED_COUNT];
     memcpy(ambient_snap, leds, sizeof(leds));
 
-    // Blend: fade_from (last alert frame) → ambient target
+    // Blend: fade_from → ambient target
     for (int i = 0; i < LED_COUNT; i++) {
         leds[i] = fade_from[i];
         nblend(leds[i], ambient_snap[i], blend);
     }
 
-    // Interpolate global brightness 255 → LED_BRIGHTNESS
-    FastLED.setBrightness(lerp8by8(255, LED_BRIGHTNESS, blend));
+    // Alert→ambient only: interpolate brightness 255 → LED_BRIGHTNESS
+    if (fade_lerp_brightness) {
+        FastLED.setBrightness(lerp8by8(255, LED_BRIGHTNESS, blend));
+    }
     return false;
 }
 
@@ -221,9 +224,11 @@ void renderer_task(void* pvParameters) {
                           prev_state != STATE_TRANSITIONING);
         if (was_alert && state == STATE_AMBIENT && !fading) {
             memcpy(fade_from, leds, sizeof(leds));
-            fade_start_ms = millis();
-            fade_target   = mode;
-            fading        = true;
+            fade_start_ms        = millis();
+            fade_target          = mode;
+            fade_duration_ms     = 2000;
+            fade_lerp_brightness = true;
+            fading               = true;
             if (xSemaphoreTake(g_state_mutex, pdMS_TO_TICKS(5))) {
                 g_device_state = STATE_TRANSITIONING;
                 xSemaphoreGive(g_state_mutex);
@@ -235,16 +240,16 @@ void renderer_task(void* pvParameters) {
         bool mode_changed = button_poll(state);
         if (mode_changed) {
             if (xSemaphoreTake(g_state_mutex, pdMS_TO_TICKS(5))) {
-                mode = g_ambient_mode; // re-read updated mode
+                mode = g_ambient_mode;
                 xSemaphoreGive(g_state_mutex);
             }
-            if (fading) fade_target = mode; // redirect fade to new mode
-
-            // White ACK flash
-            FastLED.setBrightness(255);
-            fill_solid(leds, LED_COUNT, CRGB::White);
-            FastLED.show();
-            vTaskDelay(pdMS_TO_TICKS(150));
+            // Crossfade from current frame (even mid-fade) to new mode
+            memcpy(fade_from, leds, sizeof(leds));
+            fade_start_ms        = millis();
+            fade_target          = mode;
+            fade_duration_ms     = 700;
+            fade_lerp_brightness = false;
+            fading               = true;
         }
 
         // Render
