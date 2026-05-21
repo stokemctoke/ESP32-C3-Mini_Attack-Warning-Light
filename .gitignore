@@ -1,6 +1,25 @@
-# Claude files
+# Claude / AI tooling
 .claude/
 CLAUDE.md
 
-# Github released versions
+# GitHub meta
+.github/
+
+# Arduino / ESP32 build artifacts
+build/
+*.bin
+*.elf
+*.hex
+*.map
+
+# Released binaries
 /releases
+
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor swap / temp files
+*.swp
+*~
