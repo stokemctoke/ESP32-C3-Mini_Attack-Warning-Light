@@ -142,7 +142,6 @@ static void fx_radial_breathe() {
     const uint32_t HALF_CYCLE  = (BREATH_MS - PAUSE_TOP - PAUSE_BOT) / 2;
     const float    EDGE_FALLOFF = 0.35f;   // outermost LED at 35% of centre brightness
     const float    LAG_MS       = 80.0f;   // ms lag per unit of distance from centre
-    const uint8_t  BRIGHT_MIN   = 15;
     const float    CENTRE       = (LED_COUNT - 1) / 2.0f;
     // Warm amber-white
     const uint8_t R = 255, G = 210, B = 140;
@@ -168,11 +167,7 @@ static void fx_radial_breathe() {
 
         float curved = easeInOutCubic(t);
 
-        // Centre LEDs hold at BRIGHT_MIN floor; outer LEDs go to true zero
-        float floorFraction = (CENTRE > 0.0f) ? 1.0f - (distance / CENTRE) : 1.0f;
-        float floor = (float)BRIGHT_MIN * floorFraction;
-
-        uint8_t bright = (uint8_t)(floor + curved * (255.0f * falloff - floor));
+        uint8_t bright = (uint8_t)(curved * 255.0f * falloff);
 
         leds[i] = CRGB(
             (uint8_t)((float)R * bright / 255.0f),
@@ -205,14 +200,13 @@ static void fx_arc() {
     }
 }
 
-static void fx_matrix() {
+static void fx_fire_red() {
     FastLED.setBrightness(LED_BRIGHTNESS);
-    fadeToBlackBy(leds, LED_COUNT, 45);
-    if ((esp_random() % 4) == 0) {
-        leds[esp_random() % (uint32_t)LED_COUNT] = CRGB(0, 255, 70);
-    }
-    for (int i = LED_COUNT - 1; i > 0; i--) {
-        leds[i] += leds[i - 1];
+    uint16_t t = (uint16_t)(millis() * 2);
+    for (int i = 0; i < LED_COUNT; i++) {
+        uint8_t n = inoise8((uint16_t)(i * 40), t);
+        n = scale8(n, 160); // keep palette lookup in red-orange zone of HeatColors_p
+        leds[i] = ColorFromPalette(HeatColors_p, n, 255, LINEARBLEND);
     }
 }
 
@@ -273,7 +267,7 @@ static void render_ambient(AmbientMode mode) {
         case AMBIENT_RADIAL:  fx_radial_breathe();       break;
         case AMBIENT_PLASMA:  fx_plasma();               break;
         case AMBIENT_ARC:     fx_arc();                  break;
-        case AMBIENT_MATRIX:  fx_matrix();               break;
+        case AMBIENT_FIRE:    fx_fire_red();              break;
         default:              fx_candle();               break;
     }
 }

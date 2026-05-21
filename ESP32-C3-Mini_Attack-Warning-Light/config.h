@@ -38,6 +38,6 @@ enum AmbientMode : uint8_t {
     AMBIENT_RADIAL,       // radial breathe with centre-out wave and lag
     AMBIENT_PLASMA,       // layered sine fields mapped to lava palette
     AMBIENT_ARC,          // random blue-white electrical spark bursts
-    AMBIENT_MATRIX,       // green code-rain cascade
+    AMBIENT_FIRE,         // perlin noise red fire — coherent flame body
     AMBIENT_MODE_COUNT    // sentinel for wrap-around
 };
