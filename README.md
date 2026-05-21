@@ -1,4 +1,4 @@
-# ESP32-C3 Mini — Attack Warning Light
+# ESP32 Attack Warning Light
 
 A USB-powered ambient desk light that passively monitors WiFi for 802.11 attack patterns. The light is the interface: smooth ambient effects under normal conditions, sharp visual alerts when a threat is detected.
 
