@@ -21,11 +21,11 @@ static void IRAM_ATTR promiscuous_cb(void* buf, wifi_promiscuous_pkt_type_t type
     if (frame_type != 0) return; // management frames only
 
     if (subtype == 0x0C || subtype == 0x0A) {
-        deauth_count++;   // deauth (0x0C) or disassoc (0x0A)
+        deauth_count = deauth_count + 1;   // deauth (0x0C) or disassoc (0x0A)
     } else if (subtype == 0x04) {
-        probe_count++;    // probe request
+        probe_count  = probe_count  + 1;   // probe request
     } else if (subtype == 0x08) {
-        beacon_count++;   // beacon — v1 uses raw count; unique-BSSID tracking is v2
+        beacon_count = beacon_count + 1;   // beacon — v1 uses raw count; unique-BSSID tracking is v2
     }
 }
 
