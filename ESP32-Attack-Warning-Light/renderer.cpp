@@ -213,9 +213,14 @@ static void fx_fire_red() {
 
 static void fx_alert_deauth() {
     FastLED.setBrightness(255);
-    // 3.6 Hz strobe (280 ms period)
-    bool on = (millis() % 280UL) < 140UL;
-    fill_solid(leds, LED_COUNT, on ? CRGB::Red : CRGB::Black);
+    // Police flash: red 150 ms → black 50 ms → blue 150 ms → black 50 ms (2.5 Hz cycle)
+    uint32_t t = millis() % 400UL;
+    CRGB colour;
+    if      (t < 150UL) colour = CRGB::Red;
+    else if (t < 200UL) colour = CRGB::Black;
+    else if (t < 350UL) colour = CRGB::Blue;
+    else                colour = CRGB::Black;
+    fill_solid(leds, LED_COUNT, colour);
 }
 
 static void fx_alert_beacon() {
