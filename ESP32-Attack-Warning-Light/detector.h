@@ -14,6 +14,25 @@ extern volatile uint32_t g_last_deauth;
 extern volatile uint32_t g_last_beacon;
 extern volatile uint32_t g_last_probe;
 
+// ── Packet log ────────────────────────────────────────────────────────────────
+// Ring buffer of recent deauth/disassoc frames. Written by detector_task,
+// read by webserver /log handler. No mutex — uint8 head/count are atomic;
+// minor tearing in frame fields is acceptable for a display-only log.
+#define PKT_LOG_SIZE 20
+
+struct PacketLogEntry {
+    uint32_t timestamp_ms;
+    uint8_t  sa[6];     // sender MAC (the deauthenticator)
+    uint8_t  bssid[6];  // target AP BSSID
+    int8_t   rssi;
+    uint8_t  channel;
+    uint8_t  subtype;   // 0x0C = deauth, 0x0A = disassoc
+};
+
+extern PacketLogEntry   g_pkt_log[PKT_LOG_SIZE];
+extern volatile uint8_t g_pkt_log_head;   // next write index
+extern volatile uint8_t g_pkt_log_count;  // filled entries, capped at PKT_LOG_SIZE
+
 // Initialises WiFi promiscuous mode. Call after WiFi.softAP() has started.
 void detector_init();
 

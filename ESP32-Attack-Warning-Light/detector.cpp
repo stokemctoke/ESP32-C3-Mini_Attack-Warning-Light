@@ -14,6 +14,23 @@ volatile uint32_t g_last_deauth = 0;
 volatile uint32_t g_last_beacon = 0;
 volatile uint32_t g_last_probe  = 0;
 
+// ── Packet log ring buffer ────────────────────────────────────────────────────
+PacketLogEntry   g_pkt_log[PKT_LOG_SIZE];
+volatile uint8_t g_pkt_log_head  = 0;
+volatile uint8_t g_pkt_log_count = 0;
+
+// Single-entry staging: ISR writes here, detector_task drains to ring buffer.
+// Last-wins if frames arrive faster than the task runs. Tearing in MAC bytes is
+// acceptable — this is display-only, not a forensic record.
+static struct {
+    uint8_t  sa[6];
+    uint8_t  bssid[6];
+    int8_t   rssi;
+    uint8_t  channel;
+    uint8_t  subtype;
+    volatile bool ready;
+} s_staging;
+
 // ── Promiscuous callback ───────────────────────────────────────────────────────
 // Keep this as short as possible: increment counters only, no logic.
 static void IRAM_ATTR promiscuous_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
@@ -29,6 +46,13 @@ static void IRAM_ATTR promiscuous_cb(void* buf, wifi_promiscuous_pkt_type_t type
 
     if (subtype == 0x0C || subtype == 0x0A) {
         deauth_count = deauth_count + 1;   // deauth (0x0C) or disassoc (0x0A)
+        // Stage frame metadata for the packet log (last-wins; consumed by detector_task)
+        memcpy(s_staging.sa,    pkt->payload + 10, 6);
+        memcpy(s_staging.bssid, pkt->payload + 16, 6);
+        s_staging.rssi    = pkt->rx_ctrl.rssi;
+        s_staging.channel = pkt->rx_ctrl.channel;
+        s_staging.subtype = subtype;
+        s_staging.ready   = true;
     } else if (subtype == 0x04) {
         probe_count  = probe_count  + 1;   // probe request
     } else if (subtype == 0x08) {
@@ -93,10 +117,26 @@ void detector_task(void* pvParameters) {
     uint8_t  channel      = DEFAULT_WIFI_CHANNEL;
     uint32_t last_hop_ms  = millis();
     uint32_t window_start = millis();
+    uint32_t last_log_ms  = 0;
 
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(10));
         uint32_t now = millis();
+
+        // Drain ISR staging → packet log ring buffer (rate-limited to 1 entry/200 ms)
+        if (s_staging.ready && now - last_log_ms >= 200) {
+            s_staging.ready = false;
+            uint8_t idx = g_pkt_log_head;
+            g_pkt_log[idx].timestamp_ms = now;
+            memcpy(g_pkt_log[idx].sa,    s_staging.sa,    6);
+            memcpy(g_pkt_log[idx].bssid, s_staging.bssid, 6);
+            g_pkt_log[idx].rssi    = s_staging.rssi;
+            g_pkt_log[idx].channel = s_staging.channel;
+            g_pkt_log[idx].subtype = s_staging.subtype;
+            g_pkt_log_head = (idx + 1) % PKT_LOG_SIZE;
+            if (g_pkt_log_count < PKT_LOG_SIZE) g_pkt_log_count++;
+            last_log_ms = now;
+        }
 
         // Channel hop — paused while a web client is connected so the AP stays
         // on a stable channel and the browser connection isn't disrupted.

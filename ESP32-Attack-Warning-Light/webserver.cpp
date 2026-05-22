@@ -41,6 +41,10 @@ button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:poin
 .hint{font-size:.65em;color:#444;margin-top:10px;padding-top:8px;border-top:1px solid #1e1e2e}
 .rl{display:flex;gap:14px;margin:10px 0;font-size:.8em;color:#aaa}
 .rl label{display:flex;align-items:center;gap:5px;cursor:pointer;margin:0}
+.pkt{border-top:1px solid #1e1e2e;padding:7px 0;font-size:.7em}
+.pkt:first-child{border-top:none;padding-top:0}
+.pt{margin-bottom:3px}.pt.de{color:#ff6666}.pt.di{color:#ff9933}
+.pm{color:#666}
 </style>
 </head>
 <body>
@@ -55,6 +59,10 @@ button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:poin
     <div class="cnt"><span class="n" id="cb">0</span><span class="lbl">Beacon</span></div>
     <div class="cnt"><span class="n" id="cp">0</span><span class="lbl">Probe</span></div>
   </div>
+</div>
+<div class="card">
+  <h2>Packet Log <span id="log_hdr" style="font-weight:normal;color:#444;letter-spacing:0">&mdash;</span></h2>
+  <div id="pkt_log" style="min-height:24px"><div style="color:#444;font-size:.7em">No frames captured yet</div></div>
 </div>
 <div class="card">
   <h2>Display</h2>
@@ -156,6 +164,24 @@ function pollStatus(){
     if(!d.morse_active) g('morse_status').textContent='';
   }).catch(function(){});
 }
+function fetchLog(){
+  fetch('/log').then(r=>r.json()).then(function(d){
+    g('log_hdr').textContent=d.count?'('+d.count+' frames)':'';
+    var el=g('pkt_log');
+    if(!d.count){el.innerHTML='<div style="color:#444;font-size:.7em">No frames captured yet</div>';return;}
+    el.innerHTML=d.entries.map(function(e){
+      var age=Math.round(e.t/1000);
+      var isde=e.sub===0x0C;
+      var lbl=isde?'Deauth':'Disassoc';
+      return '<div class="pkt">'
+           + '<div class="pt '+(isde?'de':'di')+'">'+lbl+'</div>'
+           + '<div class="pm">T+'+age+'s &nbsp; ch'+e.ch+' &nbsp; '+e.rssi+'dBm</div>'
+           + '<div class="pm">SA:&nbsp;&nbsp; '+e.sa+'</div>'
+           + '<div class="pm">BSSID: '+e.bssid+'</div>'
+           + '</div>';
+    }).join('');
+  }).catch(function(){});
+}
 function saveSettings(){
   var rgb=hexToRgb(g('custom_col').value);
   var p=new URLSearchParams({
@@ -197,7 +223,9 @@ function stopMorse(){
 }
 loadSettings();
 pollStatus();
+fetchLog();
 setInterval(pollStatus,1000);
+setInterval(fetchLog,5000);
 </script>
 </body>
 </html>
@@ -422,6 +450,35 @@ static void handle_morse_stop() {
     server.send(200, "text/plain", "OK");
 }
 
+static void handle_log() {
+    static char json[2500];
+    uint8_t  count = g_pkt_log_count;
+    uint8_t  head  = g_pkt_log_head;
+
+    int pos = snprintf(json, sizeof(json),
+        "{\"count\":%d,\"entries\":[", (int)count);
+
+    for (int i = 0; i < (int)count && pos < (int)sizeof(json) - 120; i++) {
+        // Newest first: walk backwards from head
+        int idx = ((int)head - 1 - i + PKT_LOG_SIZE) % PKT_LOG_SIZE;
+        const PacketLogEntry& e = g_pkt_log[idx];
+        if (i > 0) json[pos++] = ',';
+        pos += snprintf(json + pos, sizeof(json) - pos,
+            "{\"t\":%lu,"
+            "\"sa\":\"%02x:%02x:%02x:%02x:%02x:%02x\","
+            "\"bssid\":\"%02x:%02x:%02x:%02x:%02x:%02x\","
+            "\"rssi\":%d,\"ch\":%d,\"sub\":%d}",
+            (unsigned long)e.timestamp_ms,
+            e.sa[0],    e.sa[1],    e.sa[2],    e.sa[3],    e.sa[4],    e.sa[5],
+            e.bssid[0], e.bssid[1], e.bssid[2], e.bssid[3], e.bssid[4], e.bssid[5],
+            (int)e.rssi, (int)e.channel, (int)e.subtype
+        );
+    }
+
+    snprintf(json + pos, sizeof(json) - pos, "]}");
+    server.send(200, "application/json", json);
+}
+
 // ── Web server task ───────────────────────────────────────────────────────────
 
 static void webserver_task(void* pvParameters) {
@@ -445,6 +502,7 @@ void webserver_init() {
     server.on("/morse",     HTTP_POST, handle_morse_post);
     server.on("/sos",       HTTP_POST, handle_sos);
     server.on("/morse/stop",HTTP_POST, handle_morse_stop);
+    server.on("/log",       HTTP_GET,  handle_log);
     server.begin();
 
     xTaskCreate(webserver_task, "webserver", 8192, NULL, 3, NULL);
