@@ -28,23 +28,23 @@ h2{font-size:.7em;color:#faa307;text-transform:uppercase;letter-spacing:1px;marg
 .counts{display:flex;gap:10px;margin-top:10px}
 .cnt{flex:1;background:#1a1a1f;padding:8px 4px;border-radius:4px;text-align:center}
 .cnt .n{font-size:1.3em;color:#ffff00}
-.cnt .lbl{font-size:.6em;color:#666;display:block;margin-top:2px}
+.cnt .lbl{font-size:.6em;color:#9ca3af;display:block;margin-top:2px}
 .banner{background:#faa307;color:#1a1a1f;font-size:.75em;padding:7px 10px;border-radius:4px;margin-bottom:10px}
-label{display:block;font-size:.7em;color:#888;margin:10px 0 3px}
+label{display:block;font-size:.7em;color:#d1d5db;margin:10px 0 3px}
 .val{color:#ffff00;float:right}
 input[type=range]{width:100%;accent-color:#00ffff;display:block}
 input[type=number],input[type=text],select{width:100%;background:#1a1a1f;color:#ffff00;border:1px solid #303038;border-radius:4px;padding:5px 8px;font:inherit;font-size:.85em}
 input[type=color]{width:100%;height:42px;padding:3px 4px;border:1px solid #303038;border-radius:4px;background:#1a1a1f;cursor:pointer}
 .row{display:flex;gap:8px;margin-top:14px}
 button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:pointer}
-.save{background:#faa307;color:#1a1a1f}.rst{background:#2a2a32;color:#888}.sos{background:#00ffff;color:#1a1a1f}
-.hint{font-size:.65em;color:#555;margin-top:10px;padding-top:8px;border-top:1px solid #252530}
-.rl{display:flex;gap:14px;margin:10px 0;font-size:.8em;color:#aaa}
+.save{background:#faa307;color:#1a1a1f}.rst{background:#2a2a32;color:#d1d5db}.sos{background:#00ffff;color:#1a1a1f}
+.hint{font-size:.65em;color:#9ca3af;margin-top:10px;padding-top:8px;border-top:1px solid #252530}
+.rl{display:flex;gap:14px;margin:10px 0;font-size:.8em;color:#d1d5db}
 .rl label{display:flex;align-items:center;gap:5px;cursor:pointer;margin:0}
 .pkt{border-top:1px solid #252530;padding:7px 0;font-size:.7em}
 .pkt:first-child{border-top:none;padding-top:0}
 .pt{margin-bottom:3px}.pt.de{color:#faa307}.pt.di{color:#ffff00}
-.pm{color:#666}
+.pm{color:#9ca3af}
 </style>
 </head>
 <body>
@@ -53,7 +53,7 @@ button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:poin
 <div class="card">
   <h2>Live Status</h2>
   <div class="sstate ok" id="st">&#8212;</div>
-  <div style="font-size:.75em;color:#666;margin-top:3px">Mode: <span id="mn">&#8212;</span></div>
+  <div style="font-size:.75em;color:#9ca3af;margin-top:3px">Mode: <span id="mn">&#8212;</span></div>
   <div class="counts">
     <div class="cnt"><span class="n" id="cd">0</span><span class="lbl">Deauth</span></div>
     <div class="cnt"><span class="n" id="cb">0</span><span class="lbl">Beacon</span></div>
@@ -61,12 +61,12 @@ button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:poin
   </div>
 </div>
 <div class="card">
-  <h2>Alert History <span id="ah_hdr" style="font-weight:normal;color:#444;letter-spacing:0">&mdash;</span></h2>
-  <div id="alert_hist" style="min-height:24px"><div style="color:#444;font-size:.7em">No alerts recorded yet</div></div>
+  <h2>Alert History <span id="ah_hdr" style="font-weight:normal;color:#9ca3af;letter-spacing:0">&mdash;</span></h2>
+  <div id="alert_hist" style="min-height:24px"><div style="color:#9ca3af;font-size:.7em">No alerts recorded yet</div></div>
 </div>
 <div class="card">
-  <h2>Packet Log <span id="log_hdr" style="font-weight:normal;color:#444;letter-spacing:0">&mdash;</span></h2>
-  <div id="pkt_log" style="min-height:24px"><div style="color:#444;font-size:.7em">No frames captured yet</div></div>
+  <h2>Packet Log <span id="log_hdr" style="font-weight:normal;color:#9ca3af;letter-spacing:0">&mdash;</span></h2>
+  <div id="pkt_log" style="min-height:24px"><div style="color:#9ca3af;font-size:.7em">No frames captured yet</div></div>
 </div>
 <div class="card">
   <h2>Display</h2>
@@ -85,7 +85,7 @@ button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:poin
     <label>Colour</label>
     <input type="color" id="custom_col" value="#ffffd0">
   </div>
-  <h2 style="margin-top:14px">Alert Thresholds <span style="font-weight:normal;color:#444">(frames / window)</span></h2>
+  <h2 style="margin-top:14px">Alert Thresholds <span style="font-weight:normal;color:#9ca3af">(frames / window)</span></h2>
   <label>Deauth <span class="val" id="dv">10</span></label>
   <input type="range" id="deauth_t" min="1" max="200" oninput="dv.textContent=this.value">
   <label>Beacon <span class="val" id="bkv">50</span></label>
@@ -107,7 +107,7 @@ button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:poin
 </div>
 <div class="card">
   <h2>Auto Cycle</h2>
-  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8em;color:#aaa;margin:0 0 10px">
+  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8em;color:#d1d5db;margin:0 0 10px">
     <input type="checkbox" id="rc_en" onchange="applyRandom()" style="width:16px;height:16px;accent-color:#00ffff">
     Cycle through ambient modes randomly
   </label>
@@ -127,7 +127,7 @@ button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:poin
     <button class="sos" onclick="txSOS()">SOS</button>
     <button class="rst" onclick="stopMorse()">Stop</button>
   </div>
-  <div id="morse_status" style="font-size:.7em;color:#666;margin-top:8px"></div>
+  <div id="morse_status" style="font-size:.7em;color:#9ca3af;margin-top:8px"></div>
 </div>
 <script>
 var bv=document.getElementById('bv'),
@@ -172,7 +172,7 @@ function fetchAlerts(){
   fetch('/alerts').then(r=>r.json()).then(function(d){
     g('ah_hdr').textContent=d.count?'('+d.count+' events)':'';
     var el=g('alert_hist');
-    if(!d.count){el.innerHTML='<div style="color:#444;font-size:.7em">No alerts recorded yet</div>';return;}
+    if(!d.count){el.innerHTML='<div style="color:#9ca3af;font-size:.7em">No alerts recorded yet</div>';return;}
     var now_s=Math.round(d.uptime_ms/1000);
     var names={1:'Deauth Alert',2:'Beacon Alert',3:'Probe Alert',4:'Multi Alert'};
     el.innerHTML=d.entries.map(function(e){
@@ -180,7 +180,7 @@ function fetchAlerts(){
       var age=age_s<60?age_s+'s ago':Math.round(age_s/60)+'m ago';
       var col=e.type===1||e.type===4?'#faa307':'#ffff00';
       return '<div class="pkt"><span style="color:'+col+'">'+(names[e.type]||'Alert')+'</span>'
-           + ' &nbsp;<span style="color:#666;font-size:.9em">'+age+'</span></div>';
+           + ' &nbsp;<span style="color:#9ca3af;font-size:.9em">'+age+'</span></div>';
     }).join('');
   }).catch(function(){});
 }
@@ -188,7 +188,7 @@ function fetchLog(){
   fetch('/log').then(r=>r.json()).then(function(d){
     g('log_hdr').textContent=d.count?'('+d.count+' frames)':'';
     var el=g('pkt_log');
-    if(!d.count){el.innerHTML='<div style="color:#444;font-size:.7em">No frames captured yet</div>';return;}
+    if(!d.count){el.innerHTML='<div style="color:#9ca3af;font-size:.7em">No frames captured yet</div>';return;}
     el.innerHTML=d.entries.map(function(e){
       var age=Math.round(e.t/1000);
       var isde=e.sub===0x0C;
