@@ -61,6 +61,10 @@ button{flex:1;padding:9px;border:none;border-radius:4px;font:inherit;cursor:poin
   </div>
 </div>
 <div class="card">
+  <h2>Alert History <span id="ah_hdr" style="font-weight:normal;color:#444;letter-spacing:0">&mdash;</span></h2>
+  <div id="alert_hist" style="min-height:24px"><div style="color:#444;font-size:.7em">No alerts recorded yet</div></div>
+</div>
+<div class="card">
   <h2>Packet Log <span id="log_hdr" style="font-weight:normal;color:#444;letter-spacing:0">&mdash;</span></h2>
   <div id="pkt_log" style="min-height:24px"><div style="color:#444;font-size:.7em">No frames captured yet</div></div>
 </div>
@@ -164,6 +168,22 @@ function pollStatus(){
     if(!d.morse_active) g('morse_status').textContent='';
   }).catch(function(){});
 }
+function fetchAlerts(){
+  fetch('/alerts').then(r=>r.json()).then(function(d){
+    g('ah_hdr').textContent=d.count?'('+d.count+' events)':'';
+    var el=g('alert_hist');
+    if(!d.count){el.innerHTML='<div style="color:#444;font-size:.7em">No alerts recorded yet</div>';return;}
+    var now_s=Math.round(d.uptime_ms/1000);
+    var names={1:'Deauth Alert',2:'Beacon Alert',3:'Probe Alert',4:'Multi Alert'};
+    el.innerHTML=d.entries.map(function(e){
+      var age_s=now_s-Math.round(e.t/1000);
+      var age=age_s<60?age_s+'s ago':Math.round(age_s/60)+'m ago';
+      var col=e.type===1||e.type===4?'#ff6666':'#ffaa00';
+      return '<div class="pkt"><span style="color:'+col+'">'+(names[e.type]||'Alert')+'</span>'
+           + ' &nbsp;<span style="color:#666;font-size:.9em">'+age+'</span></div>';
+    }).join('');
+  }).catch(function(){});
+}
 function fetchLog(){
   fetch('/log').then(r=>r.json()).then(function(d){
     g('log_hdr').textContent=d.count?'('+d.count+' frames)':'';
@@ -223,8 +243,10 @@ function stopMorse(){
 }
 loadSettings();
 pollStatus();
+fetchAlerts();
 fetchLog();
 setInterval(pollStatus,1000);
+setInterval(fetchAlerts,10000);
 setInterval(fetchLog,5000);
 </script>
 </body>
@@ -450,6 +472,34 @@ static void handle_morse_stop() {
     server.send(200, "text/plain", "OK");
 }
 
+static void handle_alerts() {
+    static char json[700];
+    uint8_t  count = g_alert_hist_count;
+    uint8_t  head  = g_alert_hist_head;
+
+    static const char* ALERT_NAMES[] = {
+        "Ambient", "Deauth Alert", "Beacon Alert", "Probe Alert", "Multi Alert"
+    };
+
+    int pos = snprintf(json, sizeof(json),
+        "{\"uptime_ms\":%lu,\"count\":%d,\"entries\":[",
+        (unsigned long)millis(), (int)count);
+
+    for (int i = 0; i < (int)count && pos < (int)sizeof(json) - 80; i++) {
+        int idx = ((int)head - 1 - i + ALERT_HIST_SIZE) % ALERT_HIST_SIZE;
+        const AlertHistoryEntry& e = g_alert_hist[idx];
+        uint8_t t = e.alert_type;
+        const char* name = (t < 5) ? ALERT_NAMES[t] : "Unknown";
+        if (i > 0) json[pos++] = ',';
+        pos += snprintf(json + pos, sizeof(json) - pos,
+            "{\"t\":%lu,\"type\":%d,\"name\":\"%s\"}",
+            (unsigned long)e.timestamp_ms, (int)t, name);
+    }
+
+    snprintf(json + pos, sizeof(json) - pos, "]}");
+    server.send(200, "application/json", json);
+}
+
 static void handle_log() {
     static char json[2500];
     uint8_t  count = g_pkt_log_count;
@@ -502,6 +552,7 @@ void webserver_init() {
     server.on("/morse",     HTTP_POST, handle_morse_post);
     server.on("/sos",       HTTP_POST, handle_sos);
     server.on("/morse/stop",HTTP_POST, handle_morse_stop);
+    server.on("/alerts",    HTTP_GET,  handle_alerts);
     server.on("/log",       HTTP_GET,  handle_log);
     server.begin();
 

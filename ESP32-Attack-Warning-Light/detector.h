@@ -14,6 +14,20 @@ extern volatile uint32_t g_last_deauth;
 extern volatile uint32_t g_last_beacon;
 extern volatile uint32_t g_last_probe;
 
+// ── Alert history ─────────────────────────────────────────────────────────────
+// Ring buffer of alert state transitions. Written by detector_task (within the
+// mutex critical section), read by webserver /alerts handler.
+#define ALERT_HIST_SIZE 10
+
+struct AlertHistoryEntry {
+    uint32_t timestamp_ms;
+    uint8_t  alert_type;  // DeviceState value
+};
+
+extern AlertHistoryEntry g_alert_hist[ALERT_HIST_SIZE];
+extern volatile uint8_t  g_alert_hist_head;
+extern volatile uint8_t  g_alert_hist_count;
+
 // ── Packet log ────────────────────────────────────────────────────────────────
 // Ring buffer of recent deauth/disassoc frames. Written by detector_task,
 // read by webserver /log handler. No mutex — uint8 head/count are atomic;

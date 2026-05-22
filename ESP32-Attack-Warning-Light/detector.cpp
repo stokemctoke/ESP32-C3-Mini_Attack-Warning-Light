@@ -14,6 +14,11 @@ volatile uint32_t g_last_deauth = 0;
 volatile uint32_t g_last_beacon = 0;
 volatile uint32_t g_last_probe  = 0;
 
+// ── Alert history ring buffer ─────────────────────────────────────────────────
+AlertHistoryEntry g_alert_hist[ALERT_HIST_SIZE];
+volatile uint8_t  g_alert_hist_head  = 0;
+volatile uint8_t  g_alert_hist_count = 0;
+
 // ── Packet log ring buffer ────────────────────────────────────────────────────
 PacketLogEntry   g_pkt_log[PKT_LOG_SIZE];
 volatile uint8_t g_pkt_log_head  = 0;
@@ -79,8 +84,19 @@ static void evaluate_thresholds(uint32_t deauth, uint32_t probe, uint32_t beacon
         else                   new_state = STATE_ALERT_PROBE;
 
         if (xSemaphoreTake(g_state_mutex, pdMS_TO_TICKS(10))) {
-            g_device_state = new_state;
+            DeviceState prev = g_device_state;
+            g_device_state   = new_state;
             xSemaphoreGive(g_state_mutex);
+
+            // Log on rising edge: new alert type, or returning from ambient
+            if (prev == STATE_AMBIENT || prev == STATE_TRANSITIONING ||
+                prev != new_state) {
+                uint8_t idx = g_alert_hist_head;
+                g_alert_hist[idx].timestamp_ms = millis();
+                g_alert_hist[idx].alert_type   = (uint8_t)new_state;
+                g_alert_hist_head  = (idx + 1) % ALERT_HIST_SIZE;
+                if (g_alert_hist_count < ALERT_HIST_SIZE) g_alert_hist_count++;
+            }
         }
         return;
     }
